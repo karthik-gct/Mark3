@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "element35": {
+      "command": "npm",
+      "args": ["run", "mcp"],
+      "cwd": "/Users/ironman/CodingOcean/AIHarness_Mark1/context-graph-rag/element35-mcp",
+      "description": "Context graph MCP server — product, code, ops, worldview layers"
+    },
+    "jira": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-atlassian-jira"],
+      "env": {
+        "JIRA_BASE_URL": "${JIRA_BASE_URL}",
+        "JIRA_EMAIL": "${JIRA_EMAIL}",
+        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+      },
+      "description": "Jira Cloud MCP server — read/write issues, epics, stories"
+    }
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Read(artifacts/*)",
+      "Write(artifacts/*)"
+    ]
+  },
+  "env": {
+    "MARK3_ROOT": "/Users/ironman/CodingOcean/Mark3",
+    "ELEMENT35_MCP_ROOT": "/Users/ironman/CodingOcean/AIHarness_Mark1/context-graph-rag/element35-mcp"
+  }
+}

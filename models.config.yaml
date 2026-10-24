@@ -1,0 +1,99 @@
+# Mark3 Model Routing Configuration
+# ============================================================================
+# routing_backend: "direct" | "stark"
+#
+#   "direct" — each agent calls the provider API directly using model_id.
+#              No STARK server required. Start here.
+#
+#   "stark"  — all LLM calls route through STARK at stark_endpoint.
+#              STARK applies its own routing_rules based on stark_task_type.
+#              Enables cost optimization (local Qwen/Llama for eval agents)
+#              and centralized observability via Prometheus/Grafana.
+#              Requires STARK running: python3 -m stark.api.server
+#
+# STARK source: /Users/ironman/CodingOcean/STARK
+# STARK config:  ~/.stark/config.yaml
+# ============================================================================
+
+routing_backend: "direct"   # Switch to "stark" to route through STARK router
+
+stark_endpoint: "http://localhost:8000"   # STARK server (only used when routing_backend = "stark")
+
+# ============================================================================
+# PER-AGENT MODEL ASSIGNMENTS
+# ============================================================================
+# model_id      — model string passed directly to the provider API
+# provider      — "anthropic" | "gemini" | "openai"
+# stark_task_type — task type key used by STARK's routing_rules when routing_backend = "stark"
+#                   Must match a task_type in ~/.stark/config.yaml routing_rules
+# ============================================================================
+
+agents:
+
+  # --- REQUIREMENTS PHASE ---
+  prod_mgmt:
+    model_id: "claude-sonnet-4-6"
+    provider: "anthropic"
+    stark_task_type: "requirements_generation"
+    description: "ProdMgmtAgent — Concept to EPIC/STORY/SPECS"
+    context_window: 200000
+
+  # --- DESIGN PHASE ---
+  design:
+    model_id: "claude-sonnet-4-6"
+    provider: "anthropic"
+    stark_task_type: "architecture"
+    description: "DesignAgent — SPECS to DESIGN"
+    context_window: 200000
+
+  # --- DEVELOPMENT PHASE ---
+  code:
+    model_id: "claude-sonnet-4-6"
+    provider: "anthropic"
+    stark_task_type: "code_analysis"
+    description: "CodeAgent — DESIGN to implementation + unit tests"
+    context_window: 200000
+
+  # --- QUALITY PHASE ---
+  quality:
+    model_id: "claude-sonnet-4-6"
+    provider: "anthropic"
+    stark_task_type: "code_analysis"
+    description: "QualityAgent — regression + functional validation"
+    context_window: 200000
+
+  # --- EVAL AGENTS (lightweight, fast) ---
+  prod_eval:
+    model_id: "claude-haiku-4-5-20251001"
+    provider: "anthropic"
+    stark_task_type: "quick_task"
+    description: "PROD_EVALAGENT — PDLC quality gate (rubric scoring)"
+    context_window: 200000
+
+  dev_eval:
+    model_id: "claude-haiku-4-5-20251001"
+    provider: "anthropic"
+    stark_task_type: "quick_task"
+    description: "DEV_EVALAGENT — SDLC quality gate (coverage + criteria check)"
+    context_window: 200000
+
+# ============================================================================
+# FUTURE: STARK ROUTING RULES TO ADD IN ~/.stark/config.yaml
+# ============================================================================
+# When switching to routing_backend = "stark", add these rules to STARK config:
+#
+#   - name: "Requirements Generation"
+#     task_type: "requirements_generation"
+#     model: "claude-3-sonnet"
+#     fallback: ["claude-3-opus"]
+#
+#   - name: "Architecture Design"
+#     task_type: "architecture"
+#     model: "claude-3-opus"
+#     fallback: ["claude-3-sonnet", "qwen2.5-32b-coder"]
+#
+#   - name: "Code Agent Quick Task"
+#     task_type: "quick_task"
+#     model: "Gemma4-26b-fast-agent"      # local, free
+#     fallback: ["qwen2.5-32b-coder", "claude-3-sonnet"]
+# ============================================================================

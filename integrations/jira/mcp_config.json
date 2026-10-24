@@ -1,0 +1,43 @@
+{
+  "_comment": "Jira MCP server configuration for Mark3. Copy relevant sections into .claude/settings.json mcpServers.",
+  "_setup": [
+    "1. Generate a Jira API token at: https://id.atlassian.com/manage-profile/security/api-tokens",
+    "2. Set environment variables (never commit actual values):",
+    "   export JIRA_BASE_URL=https://your-org.atlassian.net",
+    "   export JIRA_EMAIL=your-email@example.com",
+    "   export JIRA_API_TOKEN=your-api-token",
+    "3. The MCP server will be started automatically by Claude Code via settings.json"
+  ],
+  "mcpServer": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-atlassian-jira"],
+    "env": {
+      "JIRA_BASE_URL": "${JIRA_BASE_URL}",
+      "JIRA_EMAIL": "${JIRA_EMAIL}",
+      "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+    }
+  },
+  "expectedTools": [
+    "jira_get_issue",
+    "jira_search_issues",
+    "jira_create_issue",
+    "jira_update_issue",
+    "jira_add_comment",
+    "jira_get_project",
+    "jira_list_projects"
+  ],
+  "mark3UsageByAgent": {
+    "ProdMgmtAgent": {
+      "reads": ["jira_get_issue", "jira_search_issues"],
+      "writes": ["jira_create_issue", "jira_update_issue", "jira_add_comment"]
+    },
+    "CodeAgent": {
+      "reads": [],
+      "writes": ["jira_update_issue"]
+    },
+    "QualityAgent": {
+      "reads": [],
+      "writes": ["jira_update_issue", "jira_add_comment"]
+    }
+  }
+}
