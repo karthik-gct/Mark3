@@ -1,0 +1,45 @@
+# Mark3 Project Configuration Template
+# Copy to {project-name}.yaml and fill in all fields.
+# Project name must be lowercase, alphanumeric + hyphens only.
+
+name: ""                    # slug — must match filename (e.g. flowboard)
+display_name: ""            # human-readable (e.g. "FlowBoard")
+description: ""             # one-line description of the project
+
+# ─── Jira ────────────────────────────────────────────────────────────────────
+jira:
+  project_key: ""           # Jira project key (e.g. FLOW, SCRUM, PROJ)
+  concept_issue_type: Epic  # Issue type treated as CONCEPT by ProdMgmtAgent
+  story_issue_type: Story   # Issue type created for stories
+
+# ─── GitHub ──────────────────────────────────────────────────────────────────
+github:
+  repo: ""                  # org/repo (e.g. karthik-gct/flowboard)
+  default_branch: main
+  branch_prefix: feature    # branches: feature/{jira-key}-{slug}
+
+# ─── Context Graph (element35-mcp) ───────────────────────────────────────────
+# Used to ingest the target project into CODE_GRAPH and PRODUCT_GRAPH.
+# local_path: path to the project on this machine (for local ingest)
+# repo_url:   GitHub URL (for remote ingest via element35-mcp scripts)
+# code_roots: subdirectories containing source code to ingest
+# product_doc_roots: subdirectories containing docs/PRDs to ingest
+code_graph:
+  local_path: ""
+  repo_url: ""
+  code_roots: []
+  product_doc_roots: []
+  graph_bootstrapped: false  # set to true once npm run ingest has run
+
+# ─── Architecture ─────────────────────────────────────────────────────────────
+# Points to the ArchitectureDesign.md for this project.
+# Use the default Mark3 one, or create a project-specific override.
+architecture_file: ArchitectureDesign.md
+
+# ─── Model Overrides (optional) ──────────────────────────────────────────────
+# Override models.config.yaml for this project only.
+# Uses the same agent keys: prod_mgmt, design, code, quality, prod_eval, dev_eval
+# model_overrides:
+#   code:
+#     model_id: claude-sonnet-4-6
+#     provider: anthropic

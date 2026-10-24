@@ -1,0 +1,33 @@
+# Mark3 Project Configuration — StarkIndustries
+# Target project: Mark3 Settings Web Interface
+
+name: starkindustries
+display_name: "StarkIndustries"
+description: "Web interface for configuring all Mark3 settings files in one place"
+
+# ─── Jira ────────────────────────────────────────────────────────────────────
+jira:
+  project_key: SCRUM
+  concept_issue_type: Epic
+  story_issue_type: Story
+
+# ─── GitHub ──────────────────────────────────────────────────────────────────
+github:
+  repo: karthik-gct/StarkIndustries
+  default_branch: main
+  branch_prefix: feature
+
+# ─── Context Graph ────────────────────────────────────────────────────────────
+# No codebase yet — greenfield project.
+# Once the repo exists and code is written, update local_path and run ingest.
+code_graph:
+  local_path: ""
+  repo_url: https://github.com/karthik-gct/StarkIndustries
+  code_roots:
+    - src
+  product_doc_roots:
+    - docs
+  graph_bootstrapped: false
+
+# ─── Architecture ─────────────────────────────────────────────────────────────
+architecture_file: projects/starkindustries_architecture.md

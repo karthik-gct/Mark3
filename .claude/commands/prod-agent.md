@@ -1,103 +1,99 @@
 ---
-description: "Run ProdMgmtAgent: convert a Jira CONCEPT issue into EPICs, STORYs, and SPECS"
+description: "Run ProdMgmtAgent: convert a Jira CONCEPT into EPICs, STORYs, and SPECS for a target project"
 ---
 
 # ProdMgmtAgent — Requirements Phase
 
 You are running the **ProdMgmtAgent** for the Mark3 autonomous SDLC pipeline.
 
-## Your Mission
-Convert the Jira CONCEPT issue `$ARGUMENTS` into:
-1. A structured EPIC (`artifacts/epics/EPIC-{key}.md`)
-2. One STORY per key capability (`artifacts/stories/STORY-{key}-{n}.md`)
-3. A detailed SPECS for each STORY (`artifacts/specs/SPECS-{story-key}.md`)
+## Arguments
+`$ARGUMENTS` format: `<project-name> <jira-issue-key>`
+Example: `starkindustries SCRUM-1`
 
-## Prerequisites Check
-Before starting, verify:
-- [ ] `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` env vars are set
-- [ ] `JIRA_BASE_URL` format: `https://your-org.atlassian.net` (no trailing slash)
-- [ ] element35-mcp is running (or will be started by the MCP server)
-- [ ] `ArchitectureDesign.md` has project_name and jira_project_key filled in
+## Step 0: Load Project Config
+Parse `$ARGUMENTS` → `PROJECT_NAME` and `JIRA_ISSUE_KEY`.
+Read `context/project_loader.md` for the full loading protocol.
 
-## Step-by-Step Loop (max PROD_MAX_LOOPS = 3)
+Load `projects/{PROJECT_NAME}.yaml`. Extract:
+- `JIRA_PROJECT_KEY` — Jira project scope
+- `JIRA_CONCEPT_TYPE`, `JIRA_STORY_TYPE`
+- `GITHUB_REPO`
+- `ARTIFACT_ROOT` = `artifacts/{PROJECT_NAME}`
+- `ARCH_FILE` (default: `ArchitectureDesign.md`)
 
-### Iteration Start
-Read `Agents.md` to load `PROD_MAX_LOOPS` and `PROD_EVAL_THRESHOLD`.
-Read `models.config.yaml` to get the model for `prod_mgmt` and `prod_eval`.
+If `projects/{PROJECT_NAME}.yaml` not found:
+```
+Error: No project config found for "{PROJECT_NAME}".
+Available projects:
+  [list all .yaml files in projects/ except _template.yaml]
 
-### Step 1: Fetch Concept from Jira
-Use the Jira MCP to fetch the issue with key `$ARGUMENTS`:
-- Extract: summary, description, labels, acceptance criteria (if any), reporter, priority
-- If the issue is not found or is not a CONCEPT-type ticket, report the error and stop
+Create one with: cp projects/_template.yaml projects/{PROJECT_NAME}.yaml
+```
 
-### Step 2: Query PRODUCT_GRAPH for Context
-Call element35 MCP tool `retrieve_context`:
+Read `Agents.md` → `PROD_MAX_LOOPS`, `PROD_EVAL_THRESHOLD`.
+Read `models.config.yaml` → models for `prod_mgmt` and `prod_eval`.
+Read `{ARCH_FILE}` → architecture context for EPIC/STORY generation.
+
+Ensure artifact directories exist:
+```
+artifacts/{PROJECT_NAME}/epics/
+artifacts/{PROJECT_NAME}/stories/
+artifacts/{PROJECT_NAME}/specs/
+```
+
+## Step 1: Fetch CONCEPT from Jira
+Use Jira MCP `read_jira_issue(issueKey=JIRA_ISSUE_KEY)`.
+Validate: issue exists and belongs to project `JIRA_PROJECT_KEY`.
+Extract: summary, description, labels, priority, reporter, any acceptance hints.
+
+## Step 2: Query PRODUCT_GRAPH
+If `graph_bootstrapped: true` in project config:
 ```json
-{
+retrieve_context({
   "query": "<issue summary>",
   "layers": ["product"],
   "vectorLimitPerLayer": 5,
-  "graphDepth": 1,
-  "includeCrossLayer": false
-}
+  "graphDepth": 1
+})
 ```
-Extract: existing EPICs, Features, Personas, Constraints that relate to this concept.
-This prevents generating EPICs that duplicate existing product graph entities.
+Extract existing Personas, Features, Constraints to avoid duplication.
 
-### Step 3: Generate EPIC.md
-Using the template at `agents/ProdMgmtAgent/EPIC_template.md`, generate:
-- Goals (3–5 measurable goals)
-- Objectives (what success looks like in 2–3 sentences)
-- Purpose (why this EPIC matters to the business)
-- High-Level Capabilities (5–8 capability statements)
-- Personas (who benefits, sourced from PRODUCT_GRAPH)
-- Out of Scope (explicit exclusions)
-- Success Metrics
+If `graph_bootstrapped: false`:
+Proceed without graph context. Note: "⚠ CODE_GRAPH not bootstrapped for {PROJECT_NAME} — EPIC generated without graph grounding."
 
-Write to: `artifacts/epics/EPIC-{issue-key}.md`
+## Step 3: Generate EPIC
+Template: `agents/ProdMgmtAgent/EPIC_template.md`
+Output: `artifacts/{PROJECT_NAME}/epics/EPIC-{JIRA_ISSUE_KEY}.md`
 
-### Step 4: Decompose EPIC into STORYs
-For each high-level capability in the EPIC:
-- Create one STORY using `agents/ProdMgmtAgent/STORY_template.md`
-- Assign complexity: 1 story point → S, 2–3 → M, 5–8 → L, 13+ → XL
-- Ensure each story is independently deliverable and testable
-- Write to: `artifacts/stories/STORY-{epic-key}-{n}.md`
+## Step 4: Decompose into STORYs
+Template: `agents/ProdMgmtAgent/STORY_template.md`
+Output: `artifacts/{PROJECT_NAME}/stories/STORY-{JIRA_ISSUE_KEY}-{n}.md`
+Rules: 5–9 stories per EPIC, each independently deliverable, no XL complexity.
 
-### Step 5: Generate INTENT.md → SPECS.md for Each Story
-For each STORY:
-1. Generate `INTENT.md` (using `agents/ProdMgmtAgent/INTENT_template.md`):
-   - Core intent in one sentence
-   - Key decisions and trade-offs
-   - What is explicitly out of scope
-2. Refine INTENT into full `SPECS.md` (using `agents/ProdMgmtAgent/SPECS_template.md`):
-   - Functional requirements (numbered)
-   - Non-functional requirements (performance, security, accessibility)
-   - Acceptance criteria (≥ 3, each independently testable)
-   - Constraints
-   - Edge cases and error states
-   - Dependencies on other stories (minimize)
+## Step 5: INTENT → SPECS per Story
+Template (INTENT): `agents/ProdMgmtAgent/INTENT_template.md`
+Template (SPECS): `agents/ProdMgmtAgent/SPECS_template.md`
+Output: `artifacts/{PROJECT_NAME}/specs/SPECS-{story-key}.md`
 
-Write each SPECS to: `artifacts/specs/SPECS-{story-key}.md`
+Story keys: since we're creating Jira tasks, use placeholder keys `{JIRA_ISSUE_KEY}-S{n}` until Jira assigns real keys, then rename files.
 
-### Step 6: Run PROD_EVALAGENT
-Read `agents/EvalAgents/PROD_EVALAGENT.md` for the scoring rubric.
-For each STORY + SPECS pair, evaluate against all 7 criteria.
-Compute total score (0–10).
+## Step 6: PROD_EVALAGENT Gate
+Rubric: `agents/EvalAgents/PROD_EVALAGENT.md`
+Threshold: `PROD_EVAL_THRESHOLD` (default 8/10).
 
-**If ALL stories score ≥ PROD_EVAL_THRESHOLD (8)**:
-- Create Jira tasks for each story (status: TODO, link to parent EPIC)
-- Report: "PDLC complete. {n} stories created in Jira."
-- Done.
+**If ALL stories pass:**
+1. Create Jira Epic linked to `JIRA_ISSUE_KEY`
+2. Create one Jira Story per story (type: `JIRA_STORY_TYPE`, status: To Do)
+3. Rename artifact files to use actual Jira keys
+4. Add comment to `JIRA_ISSUE_KEY` with summary + artifact links
+5. Report: "PDLC complete for {PROJECT_DISPLAY}. {n} stories created in Jira project {JIRA_PROJECT_KEY}."
 
-**If any story scores < 8**:
-- List specific criteria failures with actionable feedback
-- If `iteration < PROD_MAX_LOOPS`: go back to Step 3/4/5 with feedback injected
-- If `iteration >= PROD_MAX_LOOPS`: write `artifacts/specs/PDLC-ESCALATION-{key}.md` with full context and stop
+**If any story fails:**
+Inject feedback → re-iterate (max `PROD_MAX_LOOPS`).
+On exhaustion → write `artifacts/{PROJECT_NAME}/specs/PDLC-ESCALATION-{key}.md`.
 
 ## Output Summary
-At the end, report:
-- EPIC file created
-- Number of stories generated
-- Each story's PROD_EVALAGENT score
-- Jira tasks created (with keys)
-- Any stories that needed iteration (and how many rounds)
+- EPIC: `artifacts/{PROJECT_NAME}/epics/EPIC-{key}.md`
+- Stories: `artifacts/{PROJECT_NAME}/stories/STORY-{key}-{n}.md`
+- SPECS: `artifacts/{PROJECT_NAME}/specs/SPECS-{story-key}.md`
+- Jira: Epic + Story tasks created in project `{JIRA_PROJECT_KEY}`

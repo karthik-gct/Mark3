@@ -1,5 +1,5 @@
 ---
-description: "Run CodeAgent: implement code and unit tests for a story from SPECS + DESIGN"
+description: "Run CodeAgent: implement code and unit tests for a story in a target project"
 ---
 
 # CodeAgent — Development Phase
@@ -7,84 +7,65 @@ description: "Run CodeAgent: implement code and unit tests for a story from SPEC
 You are running the **CodeAgent** for the Mark3 autonomous SDLC pipeline.
 
 ## Arguments
-`$ARGUMENTS` format: `<specs-path> <design-path>`
-Example: `artifacts/specs/SPECS-PROJ-42.md artifacts/designs/DESIGN-PROJ-42.md`
+`$ARGUMENTS` format: `<project-name> <specs-path> <design-path>`
+Example: `starkindustries artifacts/starkindustries/specs/SPECS-SCRUM-2.md artifacts/starkindustries/designs/DESIGN-SCRUM-2.md`
 
-## Your Mission
-Implement production-quality code and unit tests for the given story. Iterate with DEV_EVALAGENT until all quality gates pass or `DEV_MAX_LOOPS` is exhausted.
+## Step 0: Load Project Config
+Parse `$ARGUMENTS` → `PROJECT_NAME`, `SPECS_PATH`, `DESIGN_PATH`.
+Load `projects/{PROJECT_NAME}.yaml` via `context/project_loader.md`.
 
-## Step-by-Step Loop (max DEV_MAX_LOOPS = 5)
+Extract:
+- `GITHUB_REPO` — where to push the feature branch
+- `BRANCH_PREFIX` — branch naming prefix (default: `feature`)
+- `ARTIFACT_ROOT` = `artifacts/{PROJECT_NAME}`
+- `ARCH_FILE` — architecture and conventions
 
-### Step 0: Parse Arguments
-Parse `$ARGUMENTS` to extract `specs_path` and `design_path`.
-Read both files. Extract: story ID (from filename), acceptance criteria, complexity, components to modify/create.
-Read `Agents.md` for `DEV_MAX_LOOPS` and `DEV_COVERAGE_THRESHOLD`.
-Read `ArchitectureDesign.md` for tech stack, conventions, forbidden patterns.
+Read `Agents.md` → `DEV_MAX_LOOPS`, `DEV_COVERAGE_THRESHOLD`.
+Read `{ARCH_FILE}` → conventions, forbidden patterns.
 
-### Step 1: Create Feature Branch
+**IMPORTANT**: The feature branch must be created in the **target project repo** (`GITHUB_REPO`), not in the Mark3 repo. Verify you are in the correct working directory or explicitly pass the repo path.
+
+If the target project repo is not checked out locally:
+```
+Warning: {GITHUB_REPO} not found locally.
+Attempting to clone: gh repo clone {GITHUB_REPO} /tmp/{PROJECT_NAME}
+Working directory: /tmp/{PROJECT_NAME}
+```
+
+## Step 1: Create Feature Branch in Target Repo
 ```bash
-# Extract story ID from specs filename (e.g. SPECS-PROJ-42.md → PROJ-42)
-STORY_ID=$(basename $SPECS_PATH | sed 's/SPECS-//' | sed 's/\.md//')
-SLUG=$(echo "<story title>" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-')
-git checkout -b "feature/${STORY_ID}-${SLUG}"
+STORY_KEY=$(basename {SPECS_PATH} | sed 's/SPECS-//' | sed 's/\.md//')
+SLUG=<story-title-kebab-case>
+cd /path/to/{PROJECT_NAME} repo
+git checkout {GITHUB_DEFAULT_BRANCH} && git pull
+git checkout -b "{BRANCH_PREFIX}/{STORY_KEY}-{SLUG}"
 ```
 
-### Step 2: Query CODE_GRAPH for Each Component
-For each component listed in DESIGN.md:
-- If "modify existing": call `entity_lookup` with the entity ID from CODE_GRAPH, then `graph_neighborhood` (depth 2)
-- If "create new": call `retrieve_context` with the component's responsibility to find similar patterns
+## Step 2: Query CODE_GRAPH for Each Component
+For each "modify existing" component in DESIGN.md:
+- If `GRAPH_BOOTSTRAPPED = true`: `entity_lookup(id)` → `graph_neighborhood(depth=2)`
+- If `GRAPH_BOOTSTRAPPED = false`: read the actual source file from the local repo
 
-Use these results to: match existing code style, reuse existing utilities, avoid duplicating logic.
+For each "create new" component:
+- If bootstrapped: `retrieve_context(responsibility, layers=["code"])`
+- If not: use closest existing file as structural template
 
-### Step 3: Implement Code
-For each component in DESIGN.md order:
-- **Modify existing**: make targeted changes; preserve existing interfaces unless DESIGN.md says to change them
-- **Create new**: follow ArchitectureDesign.md module structure exactly; match naming conventions
+## Step 3: Implement Code
+Follow all rules from `{ARCH_FILE}`: forbidden patterns, module boundaries, error handling.
 
-Follow all rules from `ArchitectureDesign.md`:
-- Forbidden patterns → refuse and note in commit message
-- Module boundaries → respect them; no cross-module direct calls that bypass the boundary
-- Error handling pattern → use as specified
+## Step 4: Implement Unit Tests
+One test per acceptance criterion. Co-locate per `{ARCH_FILE}` conventions.
 
-### Step 4: Implement Unit Tests
-For each acceptance criterion in SPECS.md:
-- Write ≥ 1 test case (aim for happy path + at least one failure path)
-- Test naming: `should <criterion>` or `given <state> when <action> then <expected>`
-- Use the test framework specified in ArchitectureDesign.md
-- Co-locate test files as specified in conventions
+## Step 5: DEV_EVALAGENT Gate
+Rubric: `agents/EvalAgents/DEV_EVALAGENT.md`
+Pass → commit in target repo → open PR against `{GITHUB_DEFAULT_BRANCH}` of `{GITHUB_REPO}`.
+Fail → fix → re-run (max `DEV_MAX_LOOPS`).
 
-### Step 5: Run DEV_EVALAGENT
-Read `agents/EvalAgents/DEV_EVALAGENT.md` for the checklist.
-Evaluate:
-- [ ] Every acceptance criterion has ≥1 test
-- [ ] Run tests; check coverage ≥ DEV_COVERAGE_THRESHOLD
-- [ ] All pre-existing tests still pass
-- [ ] No secrets or hardcoded env paths
-- [ ] All DESIGN.md components implemented
+## QA Re-entry
+If `artifacts/{PROJECT_NAME}/qa-reports/Code-QA-feedback-{story-key}.md` exists:
+git reset to last clean commit in the **target repo** → re-run loop with QA feedback injected.
 
-**If ALL blocking checks pass**:
-- Commit with message: `feat({story-id}): <story title>\n\n- Implements SPECS-{id} acceptance criteria\n- Tested: {n} unit tests, {coverage}% coverage`
-- Open PR draft targeting main branch
-- Report: "CodeAgent complete. Branch: feature/{id}-{slug}. {n} tests, {coverage}% coverage."
-- Done — signal QualityAgent.
-
-**If any blocking check fails**:
-- List failures with file:line references
-- If `iteration < DEV_MAX_LOOPS`: fix and re-run
-- If `iteration >= DEV_MAX_LOOPS`: write escalation report and stop
-
-### QA Re-entry (if Code-QA-feedback.md received)
-If `artifacts/qa-reports/Code-QA-feedback-{story-id}.md` exists:
-1. Read the feedback file — extract specific failures with file:line references
-2. `git reset --hard HEAD~1` (or to the last clean commit SHA)
-3. Re-run loop from Step 3, injecting the QA feedback as additional constraints
-4. This counts as a new DEV iteration; DEV_MAX_LOOPS still applies
-
-## Commit Message Format
-```
-feat({story-id}): <imperative summary under 72 chars>
-
-Closes: {jira-story-key}
-Implements: SPECS-{story-id}.md acceptance criteria {list}
-Coverage: {n}% new code, {m} tests
-```
+## Output
+- Feature branch in `{GITHUB_REPO}`
+- PR draft: `gh pr create --repo {GITHUB_REPO} --draft ...`
+- DEV_EVAL result: `artifacts/{PROJECT_NAME}/specs/DEV_EVAL-{story-key}.md`

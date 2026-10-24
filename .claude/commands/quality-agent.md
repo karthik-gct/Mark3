@@ -1,5 +1,5 @@
 ---
-description: "Run QualityAgent: validate a feature branch against SPECS acceptance criteria"
+description: "Run QualityAgent: validate a feature branch against SPECS for a target project"
 ---
 
 # QualityAgent — Quality Phase
@@ -7,94 +7,63 @@ description: "Run QualityAgent: validate a feature branch against SPECS acceptan
 You are running the **QualityAgent** for the Mark3 autonomous SDLC pipeline.
 
 ## Arguments
-`$ARGUMENTS` format: `<story-key> <branch-name>`
-Example: `PROJ-42 feature/PROJ-42-user-auth`
+`$ARGUMENTS` format: `<project-name> <story-key> <branch-name>`
+Example: `starkindustries SCRUM-2 feature/SCRUM-2-settings-ui`
 
-## Your Mission
-Validate the feature branch against SPECS.md acceptance criteria. Write a structured QA report. If failures exist, write a Code-QA-feedback.md and signal CodeAgent to fix.
+## Step 0: Load Project Config
+Parse `$ARGUMENTS` → `PROJECT_NAME`, `STORY_KEY`, `BRANCH_NAME`.
+Load `projects/{PROJECT_NAME}.yaml` via `context/project_loader.md`.
 
-## Step-by-Step Loop (max QA_MAX_LOOPS = 3)
+Extract:
+- `GITHUB_REPO` — target project repo
+- `ARTIFACT_ROOT` = `artifacts/{PROJECT_NAME}`
+- `ARCH_FILE` — test conventions
 
-### Step 0: Parse and Set Up
-Parse `$ARGUMENTS` for `story_key` and `branch_name`.
-Locate `artifacts/specs/SPECS-{story_key}.md` and `artifacts/designs/DESIGN-{story_key}.md`.
-Read `Agents.md` for `QA_MAX_LOOPS`.
-Check out the feature branch:
+Read `Agents.md` → `QA_MAX_LOOPS`.
+Locate: `artifacts/{PROJECT_NAME}/specs/SPECS-{STORY_KEY}.md`
+Locate: `artifacts/{PROJECT_NAME}/designs/DESIGN-{STORY_KEY}.md`
+
+Ensure `artifacts/{PROJECT_NAME}/qa-reports/` directory exists.
+
+**Target repo**: QA runs against `{GITHUB_REPO}`, not the Mark3 repo.
+Check out feature branch in the **target project repo**:
 ```bash
+cd /path/to/{PROJECT_NAME} repo
 git fetch origin
-git checkout {branch_name}
+git checkout {BRANCH_NAME}
 ```
 
-### Step 1: Query CODE_GRAPH for Test Context
-Call element35 MCP `retrieve_context`:
+## Step 1: Query CODE_GRAPH for Test Context
+If `GRAPH_BOOTSTRAPPED = true`:
 ```json
-{
-  "query": "<story title + acceptance criteria text>",
+retrieve_context({
+  "query": "<story title + key acceptance criteria>",
   "layers": ["code"],
   "vectorLimitPerLayer": 5,
-  "graphDepth": 1,
-  "includeCrossLayer": false
-}
+  "graphDepth": 1
+})
 ```
-Identify: existing test patterns, test utilities, what to import in new test files.
+Find existing test utilities, fixture patterns, test helpers.
 
-### Step 2: Run Existing Regression Suite
-```bash
-# Run full test suite (adapt to project's test command from ArchitectureDesign.md)
-npm test 2>&1 | tee /tmp/regression_results.txt
-# or: pytest, mvn test, cargo test, etc.
-```
+## Step 2: Run Regression Suite
+Run the full test suite per `{ARCH_FILE}` test command.
 Capture all failures with file:line references.
 
-### Step 3: Generate Functional Test Cases from Acceptance Criteria
-For each acceptance criterion in SPECS.md:
-- Write a functional test case covering the criterion end-to-end (not just unit)
-- Use integration or E2E test framework as specified in ArchitectureDesign.md
-- Run the new functional tests
-- Map each criterion → PASS or FAIL
+## Step 3: Generate + Run Functional Tests
+For each AC in `SPECS-{STORY_KEY}.md`:
+- Generate a functional test that exercises the criterion end-to-end
+- Run it
+- Map result: PASS or FAIL
 
-### Step 4: Query for Cross-Layer Impact
-For any failing test that touches an integration point, call `cross_layer_path` to identify if the failure is in the product, code, or ops layer.
-This helps classify: is this a code bug, a design gap, or an infra issue?
-
-### Step 5: Evaluate and Route
-
-**If ALL regression tests pass AND all acceptance criteria tested and passing**:
-- Generate `artifacts/qa-reports/QA_REPORT-{story_key}.md` (see template)
-- Update Jira story status to IN_QA_PASS
-- Report: "QualityAgent: all tests green. {n} regression tests, {m} functional tests. PR ready for review."
-- Done.
-
-**If any test fails**:
-- Generate `artifacts/qa-reports/Code-QA-feedback-{story_key}.md` with structured failures
-- Each failure entry must have:
-  - Acceptance criterion (if applicable)
-  - Test name and file:line
-  - Failure message / stack trace excerpt
-  - Failure classification: `logic_bug` | `missing_implementation` | `test_setup_issue` | `infra_issue`
-- Signal CodeAgent by reporting: "QA found {n} failures. Code-QA-feedback written. CodeAgent must address before re-run."
-
-If `iteration < QA_MAX_LOOPS`: wait for CodeAgent to address feedback, then re-run from Step 2.
-If `iteration >= QA_MAX_LOOPS`: write escalation section in QA_REPORT and flag for human review.
+## Step 4: Evaluate
+**All pass** → write QA_REPORT (green) → update Jira story status to Done (or In Review)
+**Failures** → write Code-QA-feedback → signal CodeAgent
 
 ## Outputs
-- `artifacts/qa-reports/QA_REPORT-{story_key}.md` — always written
-- `artifacts/qa-reports/Code-QA-feedback-{story_key}.md` — only when failures exist
+- `artifacts/{PROJECT_NAME}/qa-reports/QA_REPORT-{STORY_KEY}.md`
+- `artifacts/{PROJECT_NAME}/qa-reports/Code-QA-feedback-{STORY_KEY}.md` (failures only)
 
-## Code-QA-feedback.md Format
-```markdown
-# Code-QA-Feedback: {story_key}
-QA iteration: {n} of {QA_MAX_LOOPS}
-Date: {date}
+QA_REPORT template: `agents/QualityAgent/QA_REPORT_template.md`
+Code-QA-feedback format: see `agents/QualityAgent/agent.md`
 
-## Failures
-
-### Failure 1: {short description}
-- **Criterion**: {acceptance criterion text or "regression"}
-- **Test**: {test name} in {file}:{line}
-- **Error**: {failure message}
-- **Classification**: {logic_bug | missing_implementation | test_setup_issue | infra_issue}
-- **Suggested fix**: {one-sentence actionable hint}
-
-### Failure 2: ...
-```
+On max loops exhausted: write ESCALATED section in QA_REPORT, update Jira status to "Needs Review".

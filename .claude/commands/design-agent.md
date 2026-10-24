@@ -1,91 +1,71 @@
 ---
-description: "Run DesignAgent: convert a SPECS.md into a full technical DESIGN.md"
+description: "Run DesignAgent: convert a SPECS.md into a technical DESIGN.md for a target project"
 ---
 
 # DesignAgent — Design Phase
 
 You are running the **DesignAgent** for the Mark3 autonomous SDLC pipeline.
 
-## Your Mission
-Convert the SPECS file at `$ARGUMENTS` into a complete technical design document at `artifacts/designs/DESIGN-{story-key}.md`.
+## Arguments
+`$ARGUMENTS` format: `<project-name> <specs-file-path>`
+Example: `starkindustries artifacts/starkindustries/specs/SPECS-SCRUM-2.md`
 
-The design must be grounded in:
-1. The existing codebase (via CODE_GRAPH)
-2. The existing product context (via PRODUCT_GRAPH)
-3. The architecture constraints in `ArchitectureDesign.md`
+## Step 0: Load Project Config
+Parse `$ARGUMENTS` → `PROJECT_NAME` and `SPECS_PATH`.
+Load `projects/{PROJECT_NAME}.yaml` via `context/project_loader.md`.
 
-## Step-by-Step (max 2 iterations if architecture conflicts found)
+Extract: `ARTIFACT_ROOT`, `GITHUB_REPO`, `GRAPH_BOOTSTRAPPED`, `ARCH_FILE`.
+Ensure: `artifacts/{PROJECT_NAME}/designs/` directory exists.
+Read `{ARCH_FILE}` for stack, design principles, module boundaries, forbidden patterns.
 
-### Step 1: Parse Inputs
-- Read the SPECS file at `$ARGUMENTS`
-- Extract: story ID (from frontmatter or filename), story title, functional requirements, acceptance criteria, constraints
-- Read `ArchitectureDesign.md` for: tech stack, design principles, module boundaries, forbidden patterns
+## Step 1: Parse SPECS
+Read `{SPECS_PATH}`.
+Extract: story key (from filename), title, acceptance criteria, constraints.
+Derive design output path: `artifacts/{PROJECT_NAME}/designs/DESIGN-{story-key}.md`
 
-### Step 2: Query PRODUCT_GRAPH
-Call element35 MCP `retrieve_context`:
+## Step 2: Query PRODUCT_GRAPH (if bootstrapped)
 ```json
-{
+retrieve_context({
   "query": "<story title>",
   "layers": ["product"],
   "vectorLimitPerLayer": 5,
   "graphDepth": 1,
   "includeCrossLayer": false
-}
+})
 ```
-Extract: related EPICs, Features, Personas that give product context for this story.
 
-### Step 3: Query CODE_GRAPH
-Call element35 MCP `retrieve_context`:
+## Step 3: Query CODE_GRAPH (if bootstrapped)
 ```json
-{
-  "query": "<story title + key acceptance criteria>",
+retrieve_context({
+  "query": "<story title + top acceptance criteria>",
   "layers": ["code"],
   "vectorLimitPerLayer": 8,
   "graphDepth": 2,
   "includeCrossLayer": true
-}
+})
 ```
-For each top-hit entity, call `graph_neighborhood` (depth 2) to get surrounding context.
-Identify: existing classes/functions to modify, existing patterns to follow, dependencies.
+For each top hit: `graph_neighborhood(entityId, layer="code", depth=2)`
+For each product Feature hit: `cross_layer_path(fromLayer="product", fromEntityId, toLayer="code")`
 
-### Step 4: Query Cross-Layer Paths
-For each Feature entity found in PRODUCT_GRAPH, call `cross_layer_path`:
-```json
-{
-  "fromLayer": "product",
-  "fromEntityId": "<feature-id>",
-  "toLayer": "code"
-}
-```
-This reveals which existing modules already implement related features — prevents duplication.
+If `GRAPH_BOOTSTRAPPED = false`: skip graph queries. Design from SPECS + arch file only.
+Note in DESIGN.md: "⚠ Generated without CODE_GRAPH context for {PROJECT_NAME}."
 
-### Step 5: Generate DESIGN.md
-Using `agents/DesignAgent/DESIGN_template.md`, generate:
+## Step 4: Generate DESIGN.md
+Template: `agents/DesignAgent/DESIGN_template.md`
+Output: `artifacts/{PROJECT_NAME}/designs/DESIGN-{story-key}.md`
 
-**Components to Modify** (from CODE_GRAPH hits):
-- For each: entity ID, name, file path, nature of change, why this component
+Contents:
+- Components to modify (with CODE_GRAPH entity IDs if available, otherwise best-guess paths)
+- Components to create (location per `{ARCH_FILE}` conventions)
+- API contracts (if applicable)
+- Data model changes (if applicable)
+- Test strategy (AC → test type mapping)
+- Risk areas
 
-**Components to Create** (net-new):
-- For each: name, location (following ArchitectureDesign.md conventions), responsibility, interface
+## Step 5: Architecture Validation
+Check all design decisions against `{ARCH_FILE}` principles and forbidden patterns.
+Iterate once if conflicts found. Flag unresolvable conflicts as risks.
 
-**API Contracts** (if applicable):
-- Endpoint, method, request schema, response schema, error cases
-
-**Data Model Changes**:
-- New fields/tables/collections, migration strategy, backward compatibility
-
-**Test Strategy**:
-- Which acceptance criteria → which test type (unit/integration/E2E)
-- Which existing test suites are in blast radius of this change
-
-**Risk Areas**:
-- Cross-cutting concerns, breaking changes, performance implications
-
-### Step 6: Architecture Validation
-Check each design decision against `ArchitectureDesign.md` principles and forbidden patterns.
-If conflict found: revise the relevant section and note the constraint.
-If conflict is unresolvable: note it as a design risk and flag for human review.
-
-### Output
-Write to: `artifacts/designs/DESIGN-{story-key}.md`
-Report: "Design complete for {story-key}. {n} existing components to modify, {m} new components."
+## Output
+`artifacts/{PROJECT_NAME}/designs/DESIGN-{story-key}.md`
+Report: "Design complete for {story-key} ({PROJECT_DISPLAY}). {n} existing components to modify, {m} to create."
