@@ -11,7 +11,7 @@
 #              and centralized observability via Prometheus/Grafana.
 #              Requires STARK running: python3 -m stark.api.server
 #
-# STARK source: /Users/ironman/CodingOcean/STARK
+# STARK source: $STARK_ROOT (set in .env by setup.sh)
 # STARK config:  ~/.stark/config.yaml
 # ============================================================================
 

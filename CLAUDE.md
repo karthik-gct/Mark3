@@ -36,12 +36,12 @@ All agent system prompts live in `agents/`. Each agent's `agent.md` is the autho
 ## Model Routing
 Models are configured in `models.config.yaml`.
 - **Now**: `routing_backend: "direct"` — direct Anthropic API calls
-- **Future**: `routing_backend: "stark"` — route through STARK hybrid router (`/Users/ironman/CodingOcean/STARK`)
+- **Future**: `routing_backend: "stark"` — route through STARK hybrid router (`$STARK_ROOT`)
 
 ## Context Graph (element35-mcp)
 All agents query the 4-layer knowledge graph before generating.
-- **Source**: `/Users/ironman/CodingOcean/AIHarness_Mark1/context-graph-rag/element35-mcp`
-- **Start server**: `cd .../element35-mcp && npm run mcp`
+- **Source**: `$ELEMENT35_MCP_ROOT` (set by `setup.sh`, stored in `.env`)
+- **Start server**: `cd $ELEMENT35_MCP_ROOT && npm run mcp`
 - **MCP config**: `.claude/settings.json` → `mcpServers.element35`
 - **Interface docs**: `context/graph_interface.md`
 

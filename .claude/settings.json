@@ -10,11 +10,11 @@
       "command": "npx",
       "args": ["-y", "mcp-atlassian"],
       "env": {
-        "ATLASSIAN_BASE_URL": "https://karthik-gct.atlassian.net",
-        "ATLASSIAN_EMAIL": "karthik_gct@live.com",
+        "ATLASSIAN_BASE_URL": "${ATLASSIAN_BASE_URL}",
+        "ATLASSIAN_EMAIL": "${ATLASSIAN_EMAIL}",
         "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}"
       },
-      "description": "Atlassian MCP server — Jira Cloud (project: SCRUM / StarkIndustries)"
+      "description": "Atlassian MCP server — Jira Cloud + Confluence"
     }
   },
   "permissions": {

@@ -117,7 +117,7 @@ Product doc roots (ingested into PRODUCT_GRAPH):
   -           # e.g. "docs/rfcs"
 
 Graph bootstrap command:
-  cd /Users/ironman/CodingOcean/AIHarness_Mark1/context-graph-rag/element35-mcp
+  cd $ELEMENT35_MCP_ROOT   # set by setup.sh
   # TODO: npm run bootstrap-project -- --config projects/{project_name}.yaml
   # (per-project bootstrap not yet implemented — see context/graph_bootstrap_gap.md)
 ```

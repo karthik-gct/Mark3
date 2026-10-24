@@ -3,13 +3,13 @@
 ## Source
 **element35-mcp** — 4-layer federated knowledge graph (Neo4j + ChromaDB)
 
-**Repository**: `/Users/ironman/CodingOcean/AIHarness_Mark1/context-graph-rag/element35-mcp`  
+**Repository**: `$ELEMENT35_MCP_ROOT` (configured by `setup.sh`, stored in `.env`)  
 **MCP entry**: `.claude/settings.json` → `mcpServers.element35`
 
 ## Starting the MCP Server
 
 ```bash
-cd /Users/ironman/CodingOcean/AIHarness_Mark1/context-graph-rag/element35-mcp
+cd $ELEMENT35_MCP_ROOT   # path set during setup.sh
 npm run mcp
 ```
 

@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "element35": {
+      "command": "npm",
+      "args": ["run", "mcp"],
+      "cwd": "__ELEMENT35_MCP_ROOT__",
+      "description": "Context graph MCP server — product, code, ops, worldview layers"
+    },
+    "jira": {
+      "command": "npx",
+      "args": ["-y", "mcp-atlassian"],
+      "env": {
+        "ATLASSIAN_BASE_URL": "${ATLASSIAN_BASE_URL}",
+        "ATLASSIAN_EMAIL": "${ATLASSIAN_EMAIL}",
+        "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}"
+      },
+      "description": "Atlassian MCP server — Jira Cloud + Confluence"
+    }
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(npm run *)",
+      "Bash(npx *)",
+      "Read(artifacts/*)",
+      "Write(artifacts/*)"
+    ]
+  },
+  "env": {
+    "MARK3_ROOT": "__MARK3_ROOT__",
+    "ELEMENT35_MCP_ROOT": "__ELEMENT35_MCP_ROOT__"
+  }
+}

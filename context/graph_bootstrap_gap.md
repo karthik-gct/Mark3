@@ -65,7 +65,7 @@ maxDocChunks: 200
 
 4. Run:
 ```bash
-cd /Users/ironman/CodingOcean/AIHarness_Mark1/context-graph-rag/element35-mcp
+cd $ELEMENT35_MCP_ROOT
 npm run bootstrap-project -- --config projects/my-project.yaml
 ```
 
