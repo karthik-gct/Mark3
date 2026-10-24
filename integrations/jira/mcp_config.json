@@ -10,12 +10,17 @@
   ],
   "mcpServer": {
     "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-atlassian-jira"],
+    "args": ["-y", "mcp-atlassian"],
     "env": {
-      "JIRA_BASE_URL": "${JIRA_BASE_URL}",
-      "JIRA_EMAIL": "${JIRA_EMAIL}",
-      "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+      "ATLASSIAN_BASE_URL": "https://karthik-gct.atlassian.net",
+      "ATLASSIAN_EMAIL": "karthik_gct@live.com",
+      "ATLASSIAN_API_TOKEN": "<see .env file — never commit actual token>"
     }
+  },
+  "activeProject": {
+    "key": "SCRUM",
+    "name": "StarkIndustries",
+    "url": "https://karthik-gct.atlassian.net/jira/software/projects/SCRUM/boards"
   },
   "expectedTools": [
     "jira_get_issue",

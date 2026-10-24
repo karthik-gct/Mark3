@@ -8,13 +8,13 @@
     },
     "jira": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-atlassian-jira"],
+      "args": ["-y", "mcp-atlassian"],
       "env": {
-        "JIRA_BASE_URL": "${JIRA_BASE_URL}",
-        "JIRA_EMAIL": "${JIRA_EMAIL}",
-        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+        "ATLASSIAN_BASE_URL": "https://karthik-gct.atlassian.net",
+        "ATLASSIAN_EMAIL": "karthik_gct@live.com",
+        "ATLASSIAN_API_TOKEN": "${ATLASSIAN_API_TOKEN}"
       },
-      "description": "Jira Cloud MCP server — read/write issues, epics, stories"
+      "description": "Atlassian MCP server — Jira Cloud (project: SCRUM / StarkIndustries)"
     }
   },
   "permissions": {
