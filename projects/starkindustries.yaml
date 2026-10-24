@@ -9,7 +9,7 @@ description: "Web interface for configuring all Mark3 settings files in one plac
 jira:
   project_key: SCRUM
   concept_issue_type: Epic
-  story_issue_type: Story
+  story_issue_type: Task
 
 # ─── GitHub ──────────────────────────────────────────────────────────────────
 github:
