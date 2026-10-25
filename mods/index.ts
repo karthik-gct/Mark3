@@ -3,6 +3,7 @@ import { getState, setState, resetState, subscribe } from './state.js';
 import type { ToolCallEvent } from './types.js';
 import { TelemetryFooter } from './panes/telemetryFooter.js';
 import { createPipelineStateStore } from './store/pipelineState.js';
+import { initPipelineStatusPane } from './panes/pipelineStatusPane.js';
 
 // Claude Code Mods runtime globals — provided by the runtime, not imported.
 declare const $: {
@@ -65,6 +66,8 @@ function bootstrap(): void {
   const store = createPipelineStateStore(descriptors);
   _telemetryFooter = new TelemetryFooter(store);
   _telemetryFooter.mount();
+
+  initPipelineStatusPane();
 
   _initialized = true;
   console.log(`[Mark3 Mods] Initialized — ${descriptors.length} agents registered.`);
