@@ -1,3 +1,7 @@
+import type { ApprovalRequest } from './types/approval.js';
+
+export type { ApprovalRequest };
+
 export type PipelinePhase =
   | 'idle'
   | 'concept'
@@ -29,7 +33,8 @@ export interface PipelineState {
   storyProgress: Record<string, StoryProgress>;
   tokenTotals: Record<string, { input: number; output: number }>;
   isAwaitingApproval: boolean;
-  pendingApprovals: Array<{ id: string; prompt: string; createdAt: number }>;
+  pendingApprovals: ApprovalRequest[];
+  currentPrompt: string;
   lastToolCall: ToolCallEvent | null;
   sessionId: string;
 }

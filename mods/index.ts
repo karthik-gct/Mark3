@@ -4,6 +4,7 @@ import type { ToolCallEvent, PipelineState } from './types.js';
 import { TelemetryFooter } from './panes/telemetryFooter.js';
 import { createPipelineStateStore } from './store/pipelineState.js';
 import { initPipelineStatusPane } from './panes/pipelineStatusPane.js';
+import { mountApprovalPanel } from './panes/approvalPanel.js';
 import { initPersistence, loadConfig, type PersistableStore } from './persistence.js';
 
 // Claude Code Mods runtime globals — provided by the runtime, not imported.
@@ -18,6 +19,7 @@ declare function on(event: 'tool.call', handler: (event: Partial<ToolCallEvent>)
 let _initialized = false;
 let _telemetryFooter: TelemetryFooter | null = null;
 let _persistenceTeardown: (() => void) | null = null;
+let _approvalPanelTeardown: (() => void) | null = null;
 
 function mergeTokenTotals(
   current: Record<string, { input: number; output: number }>,
@@ -42,6 +44,8 @@ function bootstrap(): void {
     resetState();
     _telemetryFooter?.destroy();
     _telemetryFooter = null;
+    _approvalPanelTeardown?.();
+    _approvalPanelTeardown = null;
     _persistenceTeardown?.();
     _persistenceTeardown = null;
     _initialized = false;
@@ -80,6 +84,7 @@ function bootstrap(): void {
   _telemetryFooter.mount();
 
   initPipelineStatusPane();
+  _approvalPanelTeardown = mountApprovalPanel();
 
   const conceptKey = getState().conceptKey ?? '';
   loadConfig().then(cfg => {

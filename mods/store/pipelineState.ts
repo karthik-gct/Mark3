@@ -22,6 +22,7 @@ export function createPipelineStateStore(agents: AgentDescriptor[]): PipelineSta
     tokenTotals: {},
     isAwaitingApproval: false,
     pendingApprovals: [],
+    currentPrompt: '',
     lastToolCall: null,
     sessionId: `session-${Date.now()}`,
     registeredAgents: agents,

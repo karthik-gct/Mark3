@@ -7,6 +7,7 @@ vi.mock('../state.js', () => ({
     tokenTotals: {},
     isAwaitingApproval: false,
     pendingApprovals: [],
+    currentPrompt: '',
     lastToolCall: null,
     sessionId: 'test-session',
   })),
@@ -15,6 +16,10 @@ vi.mock('../state.js', () => ({
 
 vi.mock('../utils/debounce.js', () => ({
   debounce: (fn: (...args: unknown[]) => void, _ms: number) => fn,
+}));
+
+vi.mock('./approvalPanel.js', () => ({
+  renderApprovalBlock: vi.fn(() => '[APPROVAL_BLOCK]'),
 }));
 
 import {
@@ -36,6 +41,7 @@ const baseState: PipelineState = {
   tokenTotals: {},
   isAwaitingApproval: false,
   pendingApprovals: [],
+  currentPrompt: '',
   lastToolCall: null,
   sessionId: 'test-session',
 };
