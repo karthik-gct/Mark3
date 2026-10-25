@@ -1,0 +1,20 @@
+{
+  "name": "@mark3/mods",
+  "version": "0.1.0",
+  "description": "Claude Code Mods for Mark3 multi-agent pipeline",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^26.6.5",
+    "@vitest/coverage-v8": "^2.1.5",
+    "typescript": "^7.0.2",
+    "vitest": "^2.1.5"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}
