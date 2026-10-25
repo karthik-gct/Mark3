@@ -1,0 +1,33 @@
+# Mark3 Project Configuration — Mark3 Platform
+# Target project: Claude Code Mods UI for multi-agent scaffolding
+
+name: mark3
+display_name: "Mark3"
+description: "Claude Code Mods-based interactive UI for the Mark3 multi-agent SDLC pipeline"
+
+# ─── Jira ────────────────────────────────────────────────────────────────────
+jira:
+  project_key: SCRUM
+  concept_issue_type: Epic
+  story_issue_type: Task
+
+# ─── GitHub ──────────────────────────────────────────────────────────────────
+github:
+  repo: karthik-gct/Mark3
+  default_branch: main
+  branch_prefix: feature
+
+# ─── Context Graph ────────────────────────────────────────────────────────────
+code_graph:
+  local_path: /Users/ironman/CodingOcean/Mark3
+  repo_url: https://github.com/karthik-gct/Mark3
+  code_roots:
+    - agents
+    - context
+    - integrations
+  product_doc_roots:
+    - artifacts
+  graph_bootstrapped: false
+
+# ─── Architecture ─────────────────────────────────────────────────────────────
+architecture_file: ArchitectureDesign.md
