@@ -3,13 +3,14 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "lib": ["ES2022"],
     "strict": true,
     "skipLibCheck": true,
     "types": ["node", "vitest/globals"],
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "outDir": "dist",
-    "rootDir": "."
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["./**/*.ts"],
   "exclude": ["node_modules", "dist"]

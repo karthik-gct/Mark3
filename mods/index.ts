@@ -1,6 +1,8 @@
 import { loadAgentDescriptors } from './config.js';
 import { getState, setState, resetState, subscribe } from './state.js';
 import type { ToolCallEvent } from './types.js';
+import { TelemetryFooter } from './panes/telemetryFooter.js';
+import { createPipelineStateStore } from './store/pipelineState.js';
 
 // Claude Code Mods runtime globals — provided by the runtime, not imported.
 declare const $: {
@@ -12,6 +14,7 @@ declare const $: {
 declare function on(event: 'tool.call', handler: (event: Partial<ToolCallEvent>) => void): void;
 
 let _initialized = false;
+let _telemetryFooter: TelemetryFooter | null = null;
 
 function mergeTokenTotals(
   current: Record<string, { input: number; output: number }>,
@@ -26,6 +29,8 @@ function bootstrap(): void {
   if (_initialized) {
     $.agent.deregisterAll?.();
     resetState();
+    _telemetryFooter?.destroy();
+    _telemetryFooter = null;
     _initialized = false;
   }
 
@@ -56,6 +61,10 @@ function bootstrap(): void {
       tokenTotals: mergeTokenTotals(getState().tokenTotals, event),
     });
   });
+
+  const store = createPipelineStateStore(descriptors);
+  _telemetryFooter = new TelemetryFooter(store);
+  _telemetryFooter.mount();
 
   _initialized = true;
   console.log(`[Mark3 Mods] Initialized — ${descriptors.length} agents registered.`);
