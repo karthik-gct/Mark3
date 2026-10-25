@@ -1,6 +1,7 @@
 import { subscribe, getState } from '../state.js';
 import { debounce } from '../utils/debounce.js';
 import type { PipelineState, StoryProgress } from '../types.js';
+import { renderApprovalBlock } from './approvalPanel.js';
 
 // Adapter for the Claude Code Mods $.ui API (shape TBD — single coupling point)
 declare const $: {
@@ -10,6 +11,9 @@ declare const $: {
     style(text: string, opts: { bold?: boolean; bg?: string; color?: string }): string;
   };
 };
+
+const PANE_WIDTH = 60;
+const SEPARATOR_LINE = '─'.repeat(PANE_WIDTH);
 
 const PANE_ID = 'scaffold-pane';
 const DEBOUNCE_MS = 200;
@@ -66,7 +70,7 @@ function countStoryProgress(storyProgress: Record<string, StoryProgress>): { com
   return { complete, total };
 }
 
-export function buildPaneContent(state: PipelineState): string {
+export function buildPaneContent(state: PipelineState, paneWidth: number = PANE_WIDTH): string {
   const lines: string[] = [];
   lines.push($.ui.style('Mark3 Pipeline', { bold: true }));
   lines.push('');
@@ -81,6 +85,12 @@ export function buildPaneContent(state: PipelineState): string {
       }
     }
   }
+
+  // Append approval block below phase list
+  lines.push('');
+  lines.push(SEPARATOR_LINE);
+  lines.push('');
+  lines.push(renderApprovalBlock(state, paneWidth));
 
   return lines.join('\n');
 }

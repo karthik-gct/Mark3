@@ -7,6 +7,7 @@ export const initialState: PipelineState = {
   tokenTotals: {},
   isAwaitingApproval: false,
   pendingApprovals: [],
+  currentPrompt: '',
   lastToolCall: null,
   sessionId: `session-${Date.now()}`,
 };
