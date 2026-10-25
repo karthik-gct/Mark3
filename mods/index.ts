@@ -142,4 +142,7 @@ function bootstrap(): void {
 
 bootstrap();
 
+// Re-export orchestrator start function so callers can import from mods entry point.
+// The `run` function itself has no top-level side effects — importing is safe.
+export { run as startPipeline } from './orchestrator.js';
 export { subscribe, getState };
