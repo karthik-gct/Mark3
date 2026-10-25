@@ -1,11 +1,14 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadAgentDescriptors } from './config.js';
 import { getState, setState, resetState, subscribe } from './state.js';
-import type { ToolCallEvent, PipelineState } from './types.js';
+import type { ToolCallEvent, PipelineState, PipelinePhase } from './types.js';
 import { TelemetryFooter } from './panes/telemetryFooter.js';
 import { createPipelineStateStore } from './store/pipelineState.js';
 import { initPipelineStatusPane } from './panes/pipelineStatusPane.js';
 import { mountApprovalPanel } from './panes/approvalPanel.js';
 import { initPersistence, loadConfig, type PersistableStore } from './persistence.js';
+import { launchCommandCenter } from './tmux/commandCenter.js';
 
 // Claude Code Mods runtime globals — provided by the runtime, not imported.
 declare const $: {
@@ -13,13 +16,28 @@ declare const $: {
     register: (opts: { key: string; name: string; model: string; provider: string }) => void;
     deregisterAll?: () => void;
   };
+  process: {
+    run(
+      cmd: string,
+      args: string[],
+      opts?: { env?: Record<string, string>; timeout?: number; cwd?: string }
+    ): Promise<{ exitCode: number; stdout: string; stderr: string }>;
+  };
 };
 declare function on(event: 'tool.call', handler: (event: Partial<ToolCallEvent>) => void): void;
+
+// Phases that signal parallel agents are active — Command Center triggers on these.
+const PARALLEL_PHASES: ReadonlySet<PipelinePhase> = new Set(['design', 'code', 'qa']);
+
+// Resolve MARK3_ROOT from this file's location: mods/index.ts → repo root is one level up.
+const _dirname = path.dirname(fileURLToPath(import.meta.url));
+const MARK3_ROOT = path.resolve(_dirname, '..');
 
 let _initialized = false;
 let _telemetryFooter: TelemetryFooter | null = null;
 let _persistenceTeardown: (() => void) | null = null;
 let _approvalPanelTeardown: (() => void) | null = null;
+let _commandCenterLaunched = false;
 
 function mergeTokenTotals(
   current: Record<string, { input: number; output: number }>,
@@ -48,6 +66,7 @@ function bootstrap(): void {
     _approvalPanelTeardown = null;
     _persistenceTeardown?.();
     _persistenceTeardown = null;
+    _commandCenterLaunched = false;
     _initialized = false;
   }
 
@@ -77,6 +96,26 @@ function bootstrap(): void {
       },
       tokenTotals: mergeTokenTotals(getState().tokenTotals, event),
     });
+  });
+
+  // Wire up Command Center: trigger when phase transitions to design/code/qa
+  // with more than one active story. (DESIGN-SCRUM-18 § modsEntryPoint change)
+  _commandCenterLaunched = false;
+  subscribe('command-center', (state) => {
+    if (
+      !_commandCenterLaunched &&
+      PARALLEL_PHASES.has(state.phase) &&
+      Object.keys(state.storyProgress).length > 1
+    ) {
+      _commandCenterLaunched = true;
+      launchCommandCenter(
+        state.agentLogPaths,
+        state.sessionId,
+        MARK3_ROOT,
+      ).catch((err: unknown) => {
+        console.error('[Mark3 Mods] Command Center launch error:', err);
+      });
+    }
   });
 
   const store = createPipelineStateStore(descriptors);

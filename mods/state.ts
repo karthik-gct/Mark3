@@ -10,6 +10,7 @@ export const initialState: PipelineState = {
   currentPrompt: '',
   lastToolCall: null,
   sessionId: `session-${Date.now()}`,
+  agentLogPaths: {},
 };
 
 let _state: PipelineState = { ...initialState, sessionId: `session-${Date.now()}` };
@@ -42,4 +43,16 @@ export function resetState(): void {
 
 export function getSubscriberCount(): number {
   return _subscribers.size;
+}
+
+/**
+ * Register an agent's log file path in state.
+ * Called when an agent is started so the Command Center knows which log to tail.
+ * FR-6: Agent log paths stored in state for consumption by launch-command-center.sh
+ *
+ * @param agent  Agent name (e.g. "DesignAgent")
+ * @param logPath  Absolute path to the agent's log file
+ */
+export function registerAgentLogPath(agent: string, logPath: string): void {
+  setState({ agentLogPaths: { ..._state.agentLogPaths, [agent]: logPath } });
 }
