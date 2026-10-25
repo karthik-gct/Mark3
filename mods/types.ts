@@ -37,6 +37,8 @@ export interface PipelineState {
   currentPrompt: string;
   lastToolCall: ToolCallEvent | null;
   sessionId: string;
+  /** Agent name → absolute log file path; consumed by launch-command-center.sh */
+  agentLogPaths: Record<string, string>;
 }
 
 export interface AgentDescriptor {
